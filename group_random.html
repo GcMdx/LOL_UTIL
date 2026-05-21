@@ -23,7 +23,7 @@
     <header class="mb-7 text-center">
       <div class="inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-4 py-1.5 text-xs text-emerald-100">
         <span class="h-2 w-2 rounded-full bg-amber-300"></span>
-        固定双方队长 · 全员随机分边 · 全员随机分路
+        固定双方队长 · 全员随机分边 · 5位置循环分配
       </div>
       <h1 class="mt-4 text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-200 via-cyan-200 to-amber-100 text-transparent bg-clip-text">5V5 分组随机</h1>
       <p class="mt-3 text-slate-300">输入玩家名单，指定蓝红队长后，一键随机分组并随机每个人的分路位置。</p>
@@ -85,9 +85,11 @@
   </div>
 
   <script>
-    const lanes = ["上路", "打野", "中路", "下路", "辅助"];
+    // 固定5个分路，循环使用，不搞奇怪后缀
+    const LANES = ["上路", "打野", "中路", "下路", "辅助"];
     const $ = id => document.getElementById(id);
 
+    // 标准洗牌算法
     function shuffle(arr) {
       const a = [...arr];
       for (let i = a.length - 1; i > 0; i--) {
@@ -97,6 +99,7 @@
       return a;
     }
 
+    // 解析玩家名单：去重、过滤空行
     function parsePlayers() {
       const raw = $("playersInput").value || "";
       const parts = raw
@@ -115,6 +118,7 @@
       return unique;
     }
 
+    // 错误提示
     function setError(text) {
       const box = $("errorText");
       if (!text) {
@@ -126,6 +130,7 @@
       box.textContent = text;
     }
 
+    // 刷新队长下拉列表
     function fillCaptainOptions() {
       const players = parsePlayers();
       const blueSelect = $("blueCaptain");
@@ -148,27 +153,25 @@
         redSelect.insertAdjacentHTML("beforeend", `<option value="${p}">${p}</option>`);
       }
 
+      // 保留之前选中值，否则默认前两个
       blueSelect.value = players.includes(prevBlue) ? prevBlue : players[0];
-      redSelect.value = players.includes(prevRed)
-        ? prevRed
-        : (players[1] || players[0]);
+      redSelect.value = players.includes(prevRed) ? prevRed : (players[1] || players[0]);
     }
 
-    function laneByIndex(index) {
-      const lane = lanes[index % lanes.length];
-      const round = Math.floor(index / lanes.length);
-      return round === 0 ? lane : `${lane}${round + 1}`;
+    // 核心修复：给队伍分配分路（循环5路，无后缀）
+    function assignTeamLanes(teamMembers) {
+      const shuffledLanes = shuffle(LANES);
+      return teamMembers.map((name, idx) => ({
+        name,
+        lane: shuffledLanes[idx % shuffledLanes.length]
+      }));
     }
 
-    function assignTeamLanes(teamNames) {
-      const laneOrder = shuffle(Array.from({ length: teamNames.length }, (_, i) => laneByIndex(i)));
-      return teamNames.map((name, i) => ({ name, lane: laneOrder[i] }));
-    }
-
+    // 渲染队伍UI
     function renderTeam(teamData, captainName, side) {
       const tone = side === "blue"
-        ? "border-blue-200/20 bg-blue-950/25 text-blue-100"
-        : "border-red-200/20 bg-red-950/25 text-red-100";
+        ? "border-blue-200/20 bg-blue-600/20 text-blue-200"
+        : "border-red-200/20 bg-red-600/20 text-red-200";
 
       return `
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -189,15 +192,19 @@
       `;
     }
 
+    // 随机分组核心逻辑
     function randomGroup() {
       setError("");
 
       const players = parsePlayers();
-      if (players.length < 2) {
+      const total = players.length;
+
+      // 基础校验
+      if (total < 2) {
         setError("请至少输入 2 位玩家。");
         return;
       }
-      if (players.length % 2 !== 0) {
+      if (total % 2 !== 0) {
         setError("人数必须为偶数，才能平均随机分到两边。");
         return;
       }
@@ -218,31 +225,39 @@
         return;
       }
 
-      const teamSize = players.length / 2;
-      const rest = players.filter(p => p !== blueCaptain && p !== redCaptain);
-      const restShuffled = shuffle(rest);
+      // 计算每队人数
+      const perTeam = total / 2;
+      // 排除两个队长，剩下的人随机
+      const others = players.filter(p => p !== blueCaptain && p !== redCaptain);
+      const othersShuffled = shuffle(others);
 
-      const blueNames = [blueCaptain, ...restShuffled.slice(0, teamSize - 1)];
-      const redNames = [redCaptain, ...restShuffled.slice(teamSize - 1)];
+      // 分配队员：蓝队=队长+前N-1人，红队=队长+剩余人
+      const blueTeamRaw = [blueCaptain, ...othersShuffled.slice(0, perTeam - 1)];
+      const redTeamRaw = [redCaptain, ...othersShuffled.slice(perTeam - 1)];
 
-      const blueTeam = assignTeamLanes(shuffle(blueNames));
-      const redTeam = assignTeamLanes(shuffle(redNames));
+      // 给两队分别随机分配分路（每队独立洗牌分路，公平）
+      const blueTeam = assignTeamLanes(blueTeamRaw);
+      const redTeam = assignTeamLanes(redTeamRaw);
 
+      // 渲染
       $("blueTeam").innerHTML = renderTeam(blueTeam, blueCaptain, "blue");
       $("redTeam").innerHTML = renderTeam(redTeam, redCaptain, "red");
     }
 
+    // 清空结果
     function clearResults() {
       $("blueTeam").innerHTML = '<div class="rounded-3xl border border-dashed border-blue-200/20 bg-blue-950/20 text-blue-100/60 text-center py-16">点击“开始分组随机”生成蓝色方结果</div>';
       $("redTeam").innerHTML = '<div class="rounded-3xl border border-dashed border-red-200/20 bg-red-950/20 text-red-100/60 text-center py-16">点击“开始分组随机”生成红色方结果</div>';
       setError("");
     }
 
+    // 绑定事件
     $("refreshBtn").addEventListener("click", fillCaptainOptions);
     $("randomGroupBtn").addEventListener("click", randomGroup);
     $("clearBtn").addEventListener("click", clearResults);
     $("playersInput").addEventListener("input", fillCaptainOptions);
 
+    // 初始化
     fillCaptainOptions();
     clearResults();
   </script>
