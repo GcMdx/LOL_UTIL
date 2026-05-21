@@ -1,1 +1,334 @@
-https://gcmdx.github.io/LOL_UTIL/group_random.html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5V5 分组随机</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background:
+        radial-gradient(circle at 14% 8%, rgba(16, 185, 129, .22), transparent 32%),
+        radial-gradient(circle at 86% 10%, rgba(245, 158, 11, .22), transparent 28%),
+        radial-gradient(circle at 50% 120%, rgba(59, 130, 246, .18), transparent 38%),
+        #030712;
+    }
+    .glass { background: rgba(15, 23, 42, .72); backdrop-filter: blur(16px); box-shadow: 0 18px 60px rgba(0, 0, 0, .38); }
+    .team-card { transition: transform .18s ease, box-shadow .18s ease; }
+    .team-card:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(0, 0, 0, .28); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 selection:bg-emerald-300 selection:text-slate-950">
+  <div class="max-w-7xl mx-auto px-4 py-8 md:py-10">
+    <header class="mb-7 text-center">
+      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-4 py-1.5 text-xs text-emerald-100">
+        <span class="h-2 w-2 rounded-full bg-amber-300"></span>
+        固定双方队长 · 全员随机分边 · 5位置循环分配 · 新增幻神/恩怨机制
+      </div>
+      <h1 class="mt-4 text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-r from-emerald-200 via-cyan-200 to-amber-100 text-transparent bg-clip-text">5V5 分组随机</h1>
+      <p class="mt-3 text-slate-300">输入玩家名单，指定蓝红队长后，一键随机分组并随机每个人的分路位置。</p>
+      <a href="hero_random.html" class="mt-4 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10 transition">返回英雄随机页面</a>
+    </header>
+
+    <section class="glass rounded-3xl border border-white/10 p-4 md:p-5 mb-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div>
+          <label for="playersInput" class="block text-sm font-semibold text-slate-200 mb-2">玩家名单（每行一个，或用空格/逗号分隔）</label>
+          <textarea id="playersInput" rows="8" class="w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3 outline-none focus:ring-2 focus:ring-emerald-300/60" placeholder="示例：
+玩家1
+玩家2
+玩家3
+..."></textarea>
+          <p class="mt-2 text-xs text-slate-400">建议 10 人。必须是偶数人数，才能平均分边。</p>
+
+          <!-- 幻神机制 -->
+          <div class="mt-4 p-3 rounded-2xl border border-amber-300/20 bg-amber-950/20">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-semibold text-amber-200">幻神机制</label>
+              <input type="checkbox" id="godModeSwitch" class="w-4 h-4 accent-amber-400">
+            </div>
+            <textarea id="godListInput" rows="3" class="w-full rounded-xl border border-white/10 bg-slate-950/70 p-2 text-sm outline-none focus:ring-2 focus:ring-amber-300/60" placeholder="格式：玩家名:上路,打野
+每行一个幻神，冒号后写偏好位置，最多5个，不填则全位置随机"></textarea>
+            <p class="mt-1 text-xs text-amber-200/70">幻神会强制平均分配到红蓝双方</p>
+          </div>
+
+          <!-- 恩怨机制 -->
+          <div class="mt-4 p-3 rounded-2xl border border-rose-300/20 bg-rose-950/20">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-semibold text-rose-200">恩怨机制（最多3组）</label>
+              <input type="checkbox" id="enemyModeSwitch" class="w-4 h-4 accent-rose-400">
+            </div>
+            <textarea id="enemyListInput" rows="3" class="w-full rounded-xl border border-white/10 bg-slate-950/70 p-2 text-sm outline-none focus:ring-2 focus:ring-rose-300/60" placeholder="格式：玩家A,玩家B:中路
+每组一行，两人强制不同队+同位置；冒号后指定位置"></textarea>
+            <p class="mt-1 text-xs text-rose-200/70">每组2人，强制分两边且同位置，最多3组</p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="blueCaptain" class="block text-sm font-semibold text-slate-200 mb-2">蓝色方队长</label>
+              <select id="blueCaptain" class="w-full rounded-2xl border border-blue-300/25 bg-blue-950/30 p-3 outline-none focus:ring-2 focus:ring-blue-300/60"></select>
+            </div>
+            <div>
+              <label for="redCaptain" class="block text-sm font-semibold text-slate-200 mb-2">红色方队长</label>
+              <select id="redCaptain" class="w-full rounded-2xl border border-red-300/25 bg-red-950/30 p-3 outline-none focus:ring-2 focus:ring-red-300/60"></select>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button id="refreshBtn" class="rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-3 font-bold transition">刷新队长列表</button>
+            <button id="randomGroupBtn" class="rounded-2xl bg-gradient-to-r from-emerald-300 via-cyan-300 to-amber-200 text-slate-950 font-black px-6 py-3 hover:brightness-110 transition">开始分组随机</button>
+            <button id="clearBtn" class="rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-3 font-bold transition">清空结果</button>
+          </div>
+
+          <div id="errorText" class="hidden rounded-2xl border border-rose-300/30 bg-rose-900/25 px-4 py-3 text-rose-100 text-sm"></div>
+        </div>
+      </div>
+    </section>
+
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <section class="team-card rounded-[2rem] border border-blue-300/25 bg-blue-950/25 overflow-hidden shadow-2xl shadow-blue-950/30">
+        <div class="px-5 py-4 bg-gradient-to-r from-blue-600/45 via-blue-500/20 to-transparent border-b border-blue-300/20 flex items-center justify-between">
+          <div><h2 class="text-2xl md:text-3xl font-black">蓝色方</h2><p class="text-xs text-blue-100/70 mt-1">Blue Side</p></div>
+          <div class="h-11 w-11 rounded-2xl bg-blue-400/20 border border-blue-200/20 grid place-items-center text-blue-100 font-black">B</div>
+        </div>
+        <div id="blueTeam" class="p-4"></div>
+      </section>
+
+      <section class="team-card rounded-[2rem] border border-red-300/25 bg-red-950/25 overflow-hidden shadow-2xl shadow-red-950/30">
+        <div class="px-5 py-4 bg-gradient-to-r from-red-600/45 via-red-500/20 to-transparent border-b border-red-300/20 flex items-center justify-between">
+          <div><h2 class="text-2xl md:text-3xl font-black">红色方</h2><p class="text-xs text-red-100/70 mt-1">Red Side</p></div>
+          <div class="h-11 w-11 rounded-2xl bg-red-400/20 border border-red-200/20 grid place-items-center text-red-100 font-black">R</div>
+        </div>
+        <div id="redTeam" class="p-4"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const LANES = ["上路", "打野", "中路", "下路", "辅助"];
+    const $ = id => document.getElementById(id);
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function parsePlayers() {
+      const raw = $("playersInput").value || "";
+      const parts = raw
+        .split(/[\n,，、\t ]+/)
+        .map(x => x.trim())
+        .filter(Boolean);
+      const unique = [];
+      const seen = new Set();
+      for (const p of parts) {
+        if (!seen.has(p)) {
+          seen.add(p);
+          unique.push(p);
+        }
+      }
+      return unique;
+    }
+
+    function setError(text) {
+      const box = $("errorText");
+      if (!text) {
+        box.classList.add("hidden");
+        box.textContent = "";
+        return;
+      }
+      box.classList.remove("hidden");
+      box.textContent = text;
+    }
+
+    function fillCaptainOptions() {
+      const players = parsePlayers();
+      const blueSelect = $("blueCaptain");
+      const redSelect = $("redCaptain");
+      const prevBlue = blueSelect.value;
+      const prevRed = redSelect.value;
+      blueSelect.innerHTML = "";
+      redSelect.innerHTML = "";
+      if (!players.length) {
+        blueSelect.innerHTML = '<option value="">请先输入玩家</option>';
+        redSelect.innerHTML = '<option value="">请先输入玩家</option>';
+        return;
+      }
+      for (const p of players) {
+        blueSelect.insertAdjacentHTML("beforeend", `<option value="${p}">${p}</option>`);
+        redSelect.insertAdjacentHTML("beforeend", `<option value="${p}">${p}</option>`);
+      }
+      blueSelect.value = players.includes(prevBlue) ? prevBlue : players[0];
+      redSelect.value = players.includes(prevRed) ? prevRed : (players[1] || players[0]);
+    }
+
+    // 解析幻神配置：{name:偏好位置数组}
+    function parseGodConfig() {
+      if (!$("godModeSwitch").checked) return {};
+      const lines = $("godListInput").value.split(/\n/).map(l=>l.trim()).filter(Boolean);
+      const godMap = {};
+      for(let line of lines){
+        let [name, laneStr] = line.split(":");
+        name = name.trim();
+        let lanes = laneStr ? laneStr.split(/[,，]/).map(x=>x.trim()).filter(x=>LANES.includes(x)) : [...LANES];
+        if(lanes.length>5) lanes = lanes.slice(0,5);
+        godMap[name] = lanes;
+      }
+      return godMap;
+    }
+
+    // 解析恩怨配置：[{p1,p2,lane}]
+    function parseEnemyConfig() {
+      if (!$("enemyModeSwitch").checked) return [];
+      const lines = $("enemyListInput").value.split(/\n/).map(l=>l.trim()).filter(Boolean);
+      const enemyList = [];
+      for(let line of lines){
+        let [pairStr, lane] = line.split(":");
+        if(!pairStr || !lane) continue;
+        let [p1,p2] = pairStr.split(/[,，]/).map(x=>x.trim());
+        if(p1 && p2 && LANES.includes(lane) && enemyList.length<3){
+          enemyList.push({p1,p2,lane});
+        }
+      }
+      return enemyList;
+    }
+
+    // 分配位置：普通/幻神偏好/恩怨固定
+    function assignLaneForPlayer(playerName, godMap, fixedLane=null) {
+      if(fixedLane) return fixedLane;
+      if(godMap[playerName]){
+        const pool = godMap[playerName];
+        return pool[Math.floor(Math.random()*pool.length)];
+      }
+      return LANES[Math.floor(Math.random()*LANES.length)];
+    }
+
+    function renderTeam(teamData, captainName, side) {
+      const tone = side === "blue"
+        ? "border-blue-200/20 bg-blue-600/20 text-blue-200"
+        : "border-red-200/20 bg-red-600/20 text-red-200";
+      return `
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${teamData.map(player => `
+            <div class="rounded-2xl border border-white/10 bg-slate-950/55 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-black text-base truncate">${player.name}</div>
+                  <div class="text-xs text-slate-300 mt-1">分路：<span class="font-semibold text-amber-100">${player.lane}</span></div>
+                </div>
+                ${player.name === captainName
+                  ? `<span class="shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${tone}">队长</span>`
+                  : ""}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function randomGroup() {
+      setError("");
+      const players = parsePlayers();
+      const total = players.length;
+      if (total < 2) return setError("请至少输入 2 位玩家。");
+      if (total % 2 !== 0) return setError("人数必须为偶数，才能平均随机分到两边。");
+
+      const blueCaptain = $("blueCaptain").value;
+      const redCaptain = $("redCaptain").value;
+      if (!blueCaptain || !redCaptain) return setError("请先选择蓝红双方队长。");
+      if (blueCaptain === redCaptain) return setError("蓝红双方队长不能是同一个人。");
+      if (!players.includes(blueCaptain) || !players.includes(redCaptain)) return setError("队长必须来自当前玩家名单。");
+
+      const godMap = parseGodConfig();
+      const enemyList = parseEnemyConfig();
+
+      // 校验：幻神、恩怨玩家必须在名单里
+      for(let g in godMap){
+        if(!players.includes(g)) return setError(`幻神【${g}】不在玩家名单中`);
+      }
+      for(let e of enemyList){
+        if(!players.includes(e.p1) || !players.includes(e.p2)) return setError(`恩怨组【${e.p1}】【${e.p2}】有玩家不在名单`);
+        if(e.p1===e.p2) return setError("恩怨组不能是同一个人");
+      }
+
+      // 提取固定约束人员
+      const godNames = Object.keys(godMap);
+      const enemyMembers = new Set();
+      enemyList.forEach(e=>{enemyMembers.add(e.p1);enemyMembers.add(e.p2);});
+      const fixedPeople = new Set([...godNames, ...enemyMembers, blueCaptain, redCaptain]);
+      let others = players.filter(p=>!fixedPeople.has(p));
+
+      // 初始化队伍容器
+      let blue = [blueCaptain];
+      let red = [redCaptain];
+
+      // 1. 处理幻神：强制平均分配
+      const shuffledGods = shuffle(godNames);
+      for(let i=0;i<shuffledGods.length;i++){
+        if(i%2===0) blue.push(shuffledGods[i]);
+        else red.push(shuffledGods[i]);
+      }
+
+      // 2. 处理恩怨组：强制两边各一个
+      for(let e of enemyList){
+        const roll = Math.random()<0.5;
+        if(roll){ blue.push(e.p1); red.push(e.p2); }
+        else { blue.push(e.p2); red.push(e.p1); }
+      }
+
+      // 3. 填充剩余普通玩家
+      const perTeam = total/2;
+      const needBlue = perTeam - blue.length;
+      const needRed = perTeam - red.length;
+      if(needBlue<0 || needRed<0) return setError("约束人员过多，无法平均分队，请减少幻神/恩怨数量");
+      const shuffledOthers = shuffle(others);
+      blue.push(...shuffledOthers.slice(0, needBlue));
+      red.push(...shuffledOthers.slice(needBlue, needBlue+needRed));
+
+      // 4. 分配位置（处理恩怨同位置、幻神偏好、普通随机）
+      const blueResult = [];
+      const redResult = [];
+      // 先收集恩怨固定位置
+      const enemyFixLane = {};
+      enemyList.forEach(e=>{
+        enemyFixLane[e.p1] = e.lane;
+        enemyFixLane[e.p2] = e.lane;
+      });
+      // 分配蓝队
+      blue.forEach(name=>{
+        const lane = assignLaneForPlayer(name, godMap, enemyFixLane[name]||null);
+        blueResult.push({name,lane});
+      });
+      // 分配红队
+      red.forEach(name=>{
+        const lane = assignLaneForPlayer(name, godMap, enemyFixLane[name]||null);
+        redResult.push({name,lane});
+      });
+
+      // 渲染
+      $("blueTeam").innerHTML = renderTeam(blueResult, blueCaptain, "blue");
+      $("redTeam").innerHTML = renderTeam(redResult, redCaptain, "red");
+    }
+
+    function clearResults() {
+      $("blueTeam").innerHTML = '<div class="rounded-3xl border border-dashed border-blue-200/20 bg-blue-950/20 text-blue-100/60 text-center py-16">点击“开始分组随机”生成蓝色方结果</div>';
+      $("redTeam").innerHTML = '<div class="rounded-3xl border border-dashed border-red-200/20 bg-red-950/20 text-red-100/60 text-center py-16">点击“开始随机”生成红色方结果</div>';
+      setError("");
+    }
+
+    $("refreshBtn").addEventListener("click", fillCaptainOptions);
+    $("randomGroupBtn").addEventListener("click", randomGroup);
+    $("clearBtn").addEventListener("click", clearResults);
+    $("playersInput").addEventListener("input", fillCaptainOptions);
+
+    fillCaptainOptions();
+    clearResults();
+  </script>
+</body>
+</html>
