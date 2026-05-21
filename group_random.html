@@ -336,6 +336,14 @@ function shuffle(arr) {
 
 function solveTeams(config) {
 
+  // 软约束：尽量平衡幻神数量
+  // 例如：3 个幻神 -> 2:1
+  //      5 个幻神 -> 3:2
+
+  const totalGods = config.players.filter(x => x.god).length;
+
+  const maxGodPerTeam = Math.ceil(totalGods / 2);
+
   const result = {};
 
   const players = [...config.players];
@@ -343,6 +351,9 @@ function solveTeams(config) {
   const state = {
     blueCount: 0,
     redCount: 0,
+
+    blueGods: 0,
+    redGods: 0,
 
     blueLanes: new Set(),
     redLanes: new Set()
@@ -419,11 +430,21 @@ function solveTeams(config) {
     if (team === "blue") {
       if (state.blueCount >= 5) return false;
       if (state.blueLanes.has(lane)) return false;
+
+      // 幻神软平衡
+      if (player.god && state.blueGods >= maxGodPerTeam) {
+        return false;
+      }
     }
 
     if (team === "red") {
       if (state.redCount >= 5) return false;
       if (state.redLanes.has(lane)) return false;
+
+      // 幻神软平衡
+      if (player.god && state.redGods >= maxGodPerTeam) {
+        return false;
+      }
     }
 
     const captains = Object.entries(result)
@@ -480,9 +501,19 @@ function solveTeams(config) {
     if (team === "blue") {
       state.blueCount++;
       state.blueLanes.add(lane);
+
+      if (player.god) {
+        state.blueGods++;
+      }
+
     } else {
+
       state.redCount++;
       state.redLanes.add(lane);
+
+      if (player.god) {
+        state.redGods++;
+      }
     }
   }
 
@@ -495,9 +526,23 @@ function solveTeams(config) {
     if (placed.team === "blue") {
       state.blueCount--;
       state.blueLanes.delete(placed.lane);
+
+      const playerObj = players.find(x => x.name === player.name);
+
+      if (playerObj?.god) {
+        state.blueGods--;
+      }
+
     } else {
+
       state.redCount--;
       state.redLanes.delete(placed.lane);
+
+      const playerObj = players.find(x => x.name === player.name);
+
+      if (playerObj?.god) {
+        state.redGods--;
+      }
     }
 
     delete result[player.name];
