@@ -35,6 +35,7 @@
       <h1 class="mt-4 text-4xl md:text-6xl font-black tracking-tight gold-text">英雄联盟5V5英雄随机器</h1>
       <p class="mt-3 text-slate-300">按分路随机英雄，英雄池由 Python 脚本从 opgg.cn/champions 抓取生成。</p>
       <p class="mt-2 text-sm text-amber-200/90">当前游戏版本：<span id="gameVersion" class="font-bold">-</span></p>
+      <p class="mt-1 text-xs text-emerald-300">已优化：多位置英雄随机锁定单分路，所有英雄抽取概率均等</p>
     </header>
 
     <section class="mb-7 rounded-3xl border border-white/10 glass p-4 md:p-5">
@@ -440,30 +441,43 @@
       "Zaahen": "不落魔锋·亚恒",
       "Hwei": "异画师·彗",
       "Naafiri": "百裂冥犬·纳亚菲利"
-};
+    };
 
     const titleToId = Object.fromEntries(Object.entries(championTitles).map(([id, title]) => [title, id]));
 
-    function buildPoolsFromList(listText) {
-      const result = Object.fromEntries(lanes.map(lane => [lane.key, []]));
-
+    // 解析原始英雄位置数据
+    function parseRawHeroData(listText) {
+      const heroMap = {};
       listText.split(/\n+/).map(line => line.trim()).filter(Boolean).forEach(line => {
         const parts = line.split(/[：:]/);
         if (parts.length < 2) return;
-
-        const id = titleToId[parts[0].trim()];
+        const title = parts[0].trim();
+        const id = titleToId[title];
         if (!id) return;
-
-        parts.slice(1).join("：").split(/[，,、/\s]+/).map(x => x.trim()).filter(Boolean).forEach(laneName => {
-          const key = laneNameToKey[laneName];
-          if (key && !result[key].includes(id)) result[key].push(id);
-        });
+        const posList = parts.slice(1).join("：").split(/[，,、/\s]+/).map(x => x.trim()).filter(Boolean);
+        heroMap[id] = posList;
       });
-
-      return result;
+      return heroMap;
     }
 
-    const pools = buildPoolsFromList(document.getElementById("heroLaneConfig").textContent.trim());
+    // 核心：多位置英雄随机锁定单一位置，构建公平分路池
+    function buildFairLanePools(heroPosMap) {
+      const pools = Object.fromEntries(lanes.map(lane => [lane.key, []]));
+      const heroIds = Object.keys(heroPosMap);
+
+      heroIds.forEach(heroId => {
+        const posArr = heroPosMap[heroId];
+        // 随机选一个可用位置
+        const randomPickPos = posArr[Math.floor(Math.random() * posArr.length)];
+        const targetKey = laneNameToKey[randomPickPos];
+        if(targetKey) pools[targetKey].push(heroId);
+      });
+      return pools;
+    }
+
+    const rawHeroText = document.getElementById("heroLaneConfig").textContent.trim();
+    const heroPositionData = parseRawHeroData(rawHeroText);
+    let lanePools = buildFairLanePools(heroPositionData);
 
     const $ = id => document.getElementById(id);
     const safeTitle = id => championTitles[id] || "未收录英雄";
@@ -490,9 +504,11 @@
       return a;
     }
 
+    // 安全抽取，防止英雄数量不足
     function pickUnique(pool, count, used) {
       const available = shuffle(pool.filter(id => !used.has(id)));
-      const picked = available.slice(0, count);
+      const maxPick = Math.min(count, available.length);
+      const picked = available.slice(0, maxPick);
       picked.forEach(id => used.add(id));
       return picked;
     }
@@ -525,13 +541,15 @@
     function randomize() {
       const n = Math.max(1, Math.min(5, Number($("count").value) || 3));
       $("count").value = n;
+      // 每次随机都重新分配多位置英雄分路，保证每次随机性不同
+      lanePools = buildFairLanePools(heroPositionData);
 
       const used = new Set();
       const blue = {};
       const red = {};
 
-      for (const lane of lanes) blue[lane.key] = pickUnique(pools[lane.key], n, used);
-      for (const lane of lanes) red[lane.key] = pickUnique(pools[lane.key], n, used);
+      for (const lane of lanes) blue[lane.key] = pickUnique(lanePools[lane.key], n, used);
+      for (const lane of lanes) red[lane.key] = pickUnique(lanePools[lane.key], n, used);
 
       $("blueTeam").innerHTML = lanes.map(lane => laneBlock(lane, blue[lane.key])).join("");
       $("redTeam").innerHTML = lanes.map(lane => laneBlock(lane, red[lane.key])).join("");
@@ -553,8 +571,6 @@
     $("plusBtn").addEventListener("click", () => clampCount(1));
 
     clearResults();
-
-    // 页面显式展示当前版本，方便确认英雄池对应补丁。
     $("gameVersion").textContent = OPGG_GAME_VERSION;
   </script>
 </body>
