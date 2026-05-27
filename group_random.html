@@ -1,647 +1,244 @@
-```html
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>5V5 约束求解随机分组</title>
-
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <style>
-    body {
-      background:
-        radial-gradient(circle at 15% 10%, rgba(59,130,246,.18), transparent 25%),
-        radial-gradient(circle at 85% 15%, rgba(236,72,153,.16), transparent 25%),
-        radial-gradient(circle at 50% 100%, rgba(16,185,129,.14), transparent 35%),
-        #020617;
-    }
-
-    .glass {
-      background: rgba(15,23,42,.72);
-      backdrop-filter: blur(18px);
-    }
-
-    .card {
-      transition: .2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>5V5 智能分组 + 胜率预测</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{background:#020617;color:#e2e8f0}
+.glass{background:rgba(15,23,42,.72);backdrop-filter:blur(16px)}
+select{color:#000 !important;}
+</style>
 </head>
-<body class="min-h-screen text-slate-100">
+<body class="min-h-screen p-6">
+<div class="max-w-7xl mx-auto space-y-6">
 
-<div class="max-w-7xl mx-auto px-4 py-8">
-
-  <header class="text-center mb-8">
-    <h1 class="text-5xl font-black bg-gradient-to-r from-cyan-200 via-emerald-200 to-pink-200 bg-clip-text text-transparent">
-      5V5 约束求解随机分组
-    </h1>
-
-    <p class="text-slate-300 mt-4">
-      真正 CSP 约束求解 · 无解检测 · 幻神/恩怨勾选式配置
-    </p>
-  </header>
-
-  <section class="glass border border-white/10 rounded-3xl p-5 mb-6">
-
-    <label class="block text-sm font-bold mb-2">
-      玩家名单
-    </label>
-
-    <textarea
-      id="playersInput"
-      rows="5"
-      class="w-full rounded-2xl bg-slate-950/70 border border-white/10 p-3 outline-none focus:ring-2 focus:ring-cyan-300"
-      placeholder="每行一个玩家"
-    ></textarea>
-
-    <div class="flex gap-3 mt-4 flex-wrap">
-      <button
-        id="loadPlayersBtn"
-        class="px-5 py-3 rounded-2xl bg-cyan-300 text-slate-950 font-black hover:brightness-110"
-      >
-        加载玩家
-      </button>
-
-      <button
-        id="solveBtn"
-        class="px-5 py-3 rounded-2xl bg-emerald-300 text-slate-950 font-black hover:brightness-110"
-      >
-        开始求解
-      </button>
-    </div>
-
-  </section>
-
-  <section
-    id="playerConfigSection"
-    class="hidden glass border border-white/10 rounded-3xl p-5 mb-6"
-  >
-
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-2xl font-black">玩家配置</h2>
-
-      <button
-        id="addEnemyBtn"
-        class="px-4 py-2 rounded-xl bg-rose-300 text-slate-950 font-bold"
-      >
-        添加恩怨组
-      </button>
-    </div>
-
-    <div id="playersConfig" class="space-y-4"></div>
-
-    <div class="mt-8">
-      <h3 class="text-xl font-black mb-3 text-rose-200">
-        恩怨组
-      </h3>
-
-      <div id="enemyContainer" class="space-y-3"></div>
-    </div>
-
-  </section>
-
-  <div
-    id="errorBox"
-    class="hidden mb-6 rounded-2xl border border-rose-300/30 bg-rose-900/30 px-4 py-3 text-rose-100"
-  ></div>
-
-  <main class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-    <section class="card rounded-3xl border border-blue-300/20 bg-blue-950/20 overflow-hidden">
-
-      <div class="p-5 border-b border-blue-300/20 bg-blue-600/20">
-        <h2 class="text-3xl font-black">蓝色方</h2>
+<h1 class="text-4xl font-black">5V5 智能分组 + 胜率预测</h1>
+<div class="mt-4">
+        <a href="hero_random.html" class="inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/20 transition">
+          前往分组随机子页面
+        </a>
       </div>
+<div class="glass rounded-3xl p-5 space-y-3 text-sm leading-relaxed">
+<p class="text-lg font-black">系统说明</p>
+<p><b>评分体系：从夯到拉</b></p>
+<p><b>模式：</b>娱乐 / 认真 / 全随机 / 真全随机</p>
+<p><b>规则：</b>恩怨局前三个模式会尽量配平</p>
+<p><b>说明：</b>真全随机模式完全不考虑评分与平衡，纯随机分组与位置</p>
+</div>
 
-      <div id="blueTeam" class="p-5"></div>
+<div class="glass rounded-3xl p-5 space-y-4">
 
-    </section>
+<div>
+<label class="font-bold">选择 10 人</label>
+<div id="playerPool" class="grid md:grid-cols-5 gap-2 mt-2"></div>
+</div>
 
-    <section class="card rounded-3xl border border-red-300/20 bg-red-950/20 overflow-hidden">
+<div class="flex flex-wrap gap-6">
+<label><input type="radio" name="mode" value="fun"> 神将模式（选的都是不会的位置🤡）</label>
+<label><input type="radio" name="mode" value="serious"> 红温模式（选的都是会的位置🔴）</label>
+<label><input type="radio" name="mode" value="random" checked> 普通模式（尽量公平的随机⚖️）</label>
+<label><input type="radio" name="mode" value="trueRandom"> 真全随机模式（瞎几把乱选💥）</label>
+</div>
 
-      <div class="p-5 border-b border-red-300/20 bg-red-600/20">
-        <h2 class="text-3xl font-black">红色方</h2>
-      </div>
+<div>
+<h2 class="font-bold mb-2">恩怨组</h2>
+<div id="enemyRows"></div>
+<button id="addEnemy" class="mt-2 px-4 py-2 rounded bg-rose-300 text-slate-950 font-bold">添加恩怨</button>
+</div>
 
-      <div id="redTeam" class="p-5"></div>
+<button id="runBtn" class="px-6 py-3 rounded bg-emerald-300 text-slate-950 font-black">开始分组</button>
+<div id="error" class="text-rose-300"></div>
+</div>
 
-    </section>
-
-  </main>
+<div class="grid lg:grid-cols-2 gap-4">
+<div class="glass rounded-3xl p-5"><h2 class="text-2xl font-black mb-4">蓝队</h2><div id="blue"></div></div>
+<div class="glass rounded-3xl p-5"><h2 class="text-2xl font-black mb-4">红队</h2><div id="red"></div></div>
+</div>
 
 </div>
 
 <script>
+const PLAYERS = [
+  {name:"后妈", lanes:{上路:"NPC",打野:"拉完了",中路:"拉完了",下路:"拉完了",辅助:"人上人"}},
+  {name:"银河", lanes:{上路:"人上人",打野:"夯",中路:"人上人",下路:"夯",辅助:"顶级"}},
+  {name:"经理", lanes:{上路:"拉完了",打野:"拉完了",中路:"人上人",下路:"NPC",辅助:"NPC"}},
+  {name:"张津瑞", lanes:{上路:"人上人",打野:"人上人",中路:"人上人",下路:"夯",辅助:"拉完了"}},
+  {name:"亚非王", lanes:{上路:"夯",打野:"人上人",中路:"顶级",下路:"人上人",辅助:"NPC"}},
+  {name:"小寻", lanes:{上路:"人上人",打野:"NPC",中路:"拉完了",下路:"NPC",辅助:"NPC"}},
+  {name:"雄狮", lanes:{上路:"顶级",打野:"顶级",中路:"夯",下路:"NPC",辅助:"NPC"}},
+  {name:"天空", lanes:{上路:"人上人",打野:"夯",中路:"夯",下路:"人上人",辅助:"人上人"}},
+  {name:"阿呆", lanes:{上路:"拉完了",打野:"人上人",中路:"顶级",下路:"NPC",辅助:"顶级"}},
+  {name:"小智", lanes:{上路:"NPC",打野:"人上人",中路:"顶级",下路:"人上人",辅助:"NPC"}},
+  {name:"7053", lanes:{上路:"顶级",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"人上人"}},
+  {name:"0 o", lanes:{上路:"NPC",打野:"夯",中路:"人上人",下路:"顶级",辅助:"NPC"}},
+  {name:"两败俱伤", lanes:{上路:"拉完了",打野:"拉完了",中路:"拉完了",下路:"拉完了",辅助:"拉完了"}},
+  {name:"徐凤年", lanes:{上路:"NPC",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"顶级"}},
+  {name:"凹凸曼", lanes:{上路:"拉完了",打野:"拉完了",中路:"NPC",下路:"拉完了",辅助:"NPC"}},
+  {name:"喜丶悦", lanes:{上路:"NPC",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"NPC"}},
+  {name:"又又", lanes:{上路:"人上人",打野:"人上人",中路:"顶级",下路:"NPC",辅助:"拉完了"}},
+  {name:"小柠檬", lanes:{上路:"NPC",打野:"拉完了",中路:"NPC",下路:"顶级",辅助:"NPC"}},
+  {name:"ztt", lanes:{上路:"NPC",打野:"NPC",中路:"顶级",下路:"NPC",辅助:"NPC"}},
+  {name:"韩国飞行员", lanes:{上路:"人上人",打野:"NPC",中路:"人上人",下路:"夯",辅助:"人上人"}},
+  {name:"对抗路c", lanes:{上路:"夯",打野:"NPC",中路:"NPC",下路:"NPC",辅助:"NPC"}},
+  {name:"过江鱼", lanes:{上路:"NPC",打野:"顶级",中路:"NPC",下路:"NPC",辅助:"NPC"}},
+  {name:"沙弥拉上大师", lanes:{上路:"拉完了",打野:"人上人",中路:"NPC",下路:"顶级",辅助:"人上人"}},
+  {name:"双子", lanes:{上路:"顶级",打野:"顶级",中路:"人上人",下路:"NPC",辅助:"顶级"}},
+  {name:"鱼玄机", lanes:{上路:"NPC",打野:"夯",中路:"NPC",下路:"顶级",辅助:"人上人"}},
+  {name:"我还木有想好", lanes:{上路:"NPC",打野:"拉完了",中路:"人上人",下路:"NPC",辅助:"人上人"}}
+];
 
-const LANES = ["上路", "打野", "中路", "下路", "辅助"];
+const SCORE={夯:200,顶级:155,人上人:110,NPC:65,拉完了:20};
+const FUN_WEIGHT={夯:20,顶级:65,人上人:110,NPC:155,拉完了:200};
+const LANES=['上路','打野','中路','下路','辅助'];
+const $=id=>document.getElementById(id);
 
-const $ = id => document.getElementById(id);
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-let currentPlayers = [];
-
-function parsePlayers() {
-  const raw = $("playersInput").value;
-
-  return [...new Set(
-    raw
-      .split(/[\n,，、\s]+/)
-      .map(x => x.trim())
-      .filter(Boolean)
-  )];
+function renderPool(){
+$('playerPool').innerHTML=PLAYERS.map(p=>`<label class='rounded bg-slate-800 p-2'><input type='checkbox' value='${p.name}'> ${p.name}</label>`).join('')
 }
 
-function showError(msg) {
-  const box = $("errorBox");
+function addEnemyRow(){
+const row=document.createElement('div');
+row.className='grid grid-cols-4 gap-2 mt-2';
+const opts=PLAYERS.map(p=>`<option>${p.name}</option>`).join('');
+const lanes=LANES.map(x=>`<option>${x}</option>`).join('');
+row.innerHTML=`<select class='a'>${opts}</select><select class='b'>${opts}</select><select class='lane'>${lanes}</select><button onclick="this.parentElement.remove()" class="bg-white text-black rounded px-2">删除</button>`;
+$('enemyRows').appendChild(row)
+}
 
-  if (!msg) {
-    box.classList.add("hidden");
-    box.innerHTML = "";
-    return;
+function selected(){
+return [...document.querySelectorAll('#playerPool input:checked')].map(x=>PLAYERS.find(p=>p.name===x.value));
+}
+
+function getScore(p,l){return SCORE[p.lanes[l]];}
+function getWeight(p,l,mode){return mode==='fun'?FUN_WEIGHT[p.lanes[l]]:SCORE[p.lanes[l]];}
+function isEnemy(p,enemies){return enemies.some(e=>e.a===p.name||e.b===p.name);}
+function calc(team,map){return team.reduce((s,p)=>s+getScore(p,map[p.name]),0)}
+
+function assign(team,mode,enemies,fullRandom){
+let best=null;
+function dfs(i,used,map,total){
+if(i===team.length){if(!best||total>best.total)best={map:{...map},total};return}
+const p=team[i];
+for(const lane of LANES){
+if(used.has(lane))continue;
+
+if(fullRandom){
+used.add(lane);
+map[p.name]=lane;
+dfs(i+1,used,map,total+Math.random()*200);
+used.delete(lane);
+delete map[p.name];
+continue;
+}
+
+const e=enemies.find(x=>x.a===p.name||x.b===p.name);
+if(e&&e.lane!==lane)continue;
+
+used.add(lane);
+map[p.name]=lane;
+dfs(i+1,used,map,total+getWeight(p,lane,mode));
+used.delete(lane);
+delete map[p.name];
+}
+}
+dfs(0,new Set(),{},0);
+return best;
+}
+
+function winRate(diff){ return 100 / (1 + Math.exp(-diff / 120));}
+
+function run(){
+$('error').textContent='';
+const players=selected();
+if(players.length!==10){$('error').textContent='请选择10人';return}
+const enemies=[...document.querySelectorAll('#enemyRows > div')].map(r=>({a:r.querySelector('.a').value,b:r.querySelector('.b').value,lane:r.querySelector('.lane').value}));
+const mode=document.querySelector('input[name=mode]:checked').value;
+
+// 🔥 真全随机模式
+if(mode==='trueRandom'){
+  const s = shuffle(players);
+  const blue = s.slice(0,5);
+  const red = s.slice(5);
+
+  function randMap(team){
+    const lanes = [...LANES];
+    const map = {};
+    for(const p of team){
+      const idx = Math.floor(Math.random()*lanes.length);
+      map[p.name] = lanes.splice(idx,1)[0];
+    }
+    return map;
   }
 
-  box.classList.remove("hidden");
-  box.innerHTML = msg;
-}
+  const ba = { map: randMap(blue) };
+  const ra = { map: randMap(red) };
 
-function loadPlayers() {
+  const blueTotal = calc(blue, ba.map);
+  const redTotal = calc(red, ra.map);
 
-  showError("");
+  const diff = blueTotal - redTotal;
 
-  const players = parsePlayers();
-
-  if (players.length !== 10) {
-    return showError("必须正好 10 名玩家");
-  }
-
-  currentPlayers = players;
-
-  renderPlayerConfigs();
-
-  $("playerConfigSection").classList.remove("hidden");
-}
-
-function renderPlayerConfigs() {
-
-  const container = $("playersConfig");
-
-  container.innerHTML = "";
-
-  currentPlayers.forEach(player => {
-
-    container.insertAdjacentHTML("beforeend", `
-
-      <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-
-        <div class="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-
-          <div class="text-xl font-black min-w-[100px]">
-            ${player}
-          </div>
-
-          <div class="flex flex-wrap gap-4">
-
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" class="captain-check" data-player="${player}">
-              队长
-            </label>
-
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" class="god-check" data-player="${player}">
-              幻神
-            </label>
-
-          </div>
-
-        </div>
-
-        <div class="mt-4 flex flex-wrap gap-3 lane-pref" data-player="${player}">
-
-          ${LANES.map(lane => `
-            <label class="flex items-center gap-2 text-xs rounded-full border border-white/10 px-3 py-1 bg-white/5">
-              <input
-                type="checkbox"
-                class="lane-check"
-                data-player="${player}"
-                value="${lane}"
-              >
-              ${lane}
-            </label>
-          `).join("")}
-
-        </div>
-
-      </div>
-
-    `);
-  });
-}
-
-function addEnemyRow() {
-
-  const container = $("enemyContainer");
-
-  const row = document.createElement("div");
-
-  row.className = "rounded-2xl border border-rose-300/20 bg-rose-950/20 p-4";
-
-  row.innerHTML = `
-
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-
-      <select class="enemy-a rounded-xl bg-slate-950/70 border border-white/10 p-2">
-        ${currentPlayers.map(p => `<option>${p}</option>`).join("")}
-      </select>
-
-      <select class="enemy-b rounded-xl bg-slate-950/70 border border-white/10 p-2">
-        ${currentPlayers.map(p => `<option>${p}</option>`).join("")}
-      </select>
-
-      <select class="enemy-lane rounded-xl bg-slate-950/70 border border-white/10 p-2">
-        ${LANES.map(l => `<option>${l}</option>`).join("")}
-      </select>
-
-      <button class="remove-enemy rounded-xl bg-rose-300 text-slate-950 font-bold">
-        删除
-      </button>
-
-    </div>
-
-  `;
-
-  container.appendChild(row);
-
-  row.querySelector(".remove-enemy")
-    .addEventListener("click", () => row.remove());
-}
-
-function buildConfig() {
-
-  const players = currentPlayers.map(name => {
-
-    const captain = document.querySelector(`.captain-check[data-player="${name}"]`).checked;
-
-    const god = document.querySelector(`.god-check[data-player="${name}"]`).checked;
-
-    const preferredLanes = [...document.querySelectorAll(`.lane-check[data-player="${name}"]:checked`)]
-      .map(x => x.value);
-
-    return {
-      name,
-      captain,
-      god,
-      preferredLanes
-    };
+  render({
+    blue, red,
+    ba, ra,
+    blueTotal,
+    redTotal,
+    diff
   });
 
-  const captains = players.filter(x => x.captain);
-
-  if (captains.length !== 2) {
-    throw new Error("必须选择 2 名队长");
-  }
-
-  const enemyPairs = [...document.querySelectorAll("#enemyContainer > div")]
-    .map(row => {
-
-      const a = row.querySelector(".enemy-a").value;
-      const b = row.querySelector(".enemy-b").value;
-      const lane = row.querySelector(".enemy-lane").value;
-
-      if (a === b) {
-        throw new Error("恩怨组不能是同一个人");
-      }
-
-      return { a, b, lane };
-    });
-
-  return {
-    players,
-    enemyPairs
-  };
+  return;
 }
 
-function shuffle(arr) {
-  const a = [...arr];
+const fullRandom=mode==='random';
 
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
+let best=null;
+for(let i=0;i<300;i++){
+const s=shuffle(players);
+const blue=s.slice(0,5),red=s.slice(5);
 
-  return a;
+const ba=assign(blue,mode,enemies,fullRandom);
+const ra=assign(red,mode,enemies,fullRandom);
+if(!ba||!ra)continue;
+
+const blueTotal=calc(blue,ba.map);
+const redTotal=calc(red,ra.map);
+
+const diff=blueTotal-redTotal;
+const score=Math.abs(diff);
+if(!best||score<best.score)best={blue,red,ba,ra,blueTotal,redTotal,diff,score};
 }
 
-function solveTeams(config) {
-
-  // 软约束：尽量平衡幻神数量
-  // 例如：3 个幻神 -> 2:1
-  //      5 个幻神 -> 3:2
-
-  const totalGods = config.players.filter(x => x.god).length;
-
-  const maxGodPerTeam = Math.ceil(totalGods / 2);
-
-  const result = {};
-
-  const players = [...config.players];
-
-  const state = {
-    blueCount: 0,
-    redCount: 0,
-
-    blueGods: 0,
-    redGods: 0,
-
-    blueLanes: new Set(),
-    redLanes: new Set()
-  };
-
-  const ordered = players.sort((a, b) => {
-
-    const wa = weight(a, config);
-    const wb = weight(b, config);
-
-    return wb - wa;
-  });
-
-  function dfs(index) {
-
-    if (index >= ordered.length) {
-      return true;
-    }
-
-    const player = ordered[index];
-
-    const teams = shuffle(["blue", "red"]);
-
-    const lanes = getPossibleLanes(player);
-
-    for (const team of teams) {
-
-      for (const lane of lanes) {
-
-        if (!canPlace(player, team, lane)) {
-          continue;
-        }
-
-        place(player, team, lane);
-
-        if (dfs(index + 1)) {
-          return true;
-        }
-
-        rollback(player);
-      }
-    }
-
-    return false;
-  }
-
-  function weight(player, config) {
-
-    let w = 0;
-
-    if (player.captain) w += 100;
-    if (player.god) w += 50;
-
-    const enemyCount = config.enemyPairs.filter(
-      x => x.a === player.name || x.b === player.name
-    ).length;
-
-    w += enemyCount * 40;
-
-    return w;
-  }
-
-  function getPossibleLanes(player) {
-
-    if (player.preferredLanes.length > 0) {
-      return shuffle(player.preferredLanes);
-    }
-
-    return shuffle(LANES);
-  }
-
-  function canPlace(player, team, lane) {
-
-    if (team === "blue") {
-      if (state.blueCount >= 5) return false;
-      if (state.blueLanes.has(lane)) return false;
-
-      // 幻神软平衡
-      if (player.god && state.blueGods >= maxGodPerTeam) {
-        return false;
-      }
-    }
-
-    if (team === "red") {
-      if (state.redCount >= 5) return false;
-      if (state.redLanes.has(lane)) return false;
-
-      // 幻神软平衡
-      if (player.god && state.redGods >= maxGodPerTeam) {
-        return false;
-      }
-    }
-
-    const captains = Object.entries(result)
-      .filter(([_, v]) => v.captain)
-      .map(([_, v]) => v.team);
-
-    if (player.captain) {
-
-      if (captains.includes(team)) {
-        return false;
-      }
-    }
-
-    for (const enemy of config.enemyPairs) {
-
-      if (enemy.a !== player.name && enemy.b !== player.name) {
-        continue;
-      }
-
-      const otherName = enemy.a === player.name
-        ? enemy.b
-        : enemy.a;
-
-      const other = result[otherName];
-
-      if (!other) {
-        continue;
-      }
-
-      if (other.team === team) {
-        return false;
-      }
-
-      if (lane !== enemy.lane) {
-        return false;
-      }
-
-      if (other.lane !== lane) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  function place(player, team, lane) {
-
-    result[player.name] = {
-      team,
-      lane,
-      captain: player.captain
-    };
-
-    if (team === "blue") {
-      state.blueCount++;
-      state.blueLanes.add(lane);
-
-      if (player.god) {
-        state.blueGods++;
-      }
-
-    } else {
-
-      state.redCount++;
-      state.redLanes.add(lane);
-
-      if (player.god) {
-        state.redGods++;
-      }
-    }
-  }
-
-  function rollback(player) {
-
-    const placed = result[player.name];
-
-    if (!placed) return;
-
-    if (placed.team === "blue") {
-      state.blueCount--;
-      state.blueLanes.delete(placed.lane);
-
-      const playerObj = players.find(x => x.name === player.name);
-
-      if (playerObj?.god) {
-        state.blueGods--;
-      }
-
-    } else {
-
-      state.redCount--;
-      state.redLanes.delete(placed.lane);
-
-      const playerObj = players.find(x => x.name === player.name);
-
-      if (playerObj?.god) {
-        state.redGods--;
-      }
-    }
-
-    delete result[player.name];
-  }
-
-  const success = dfs(0);
-
-  if (!success) {
-    return null;
-  }
-
-  return result;
+if(!best){$('error').textContent='无解';return}
+render(best);
 }
 
-function renderResult(result) {
-
-  const blue = [];
-  const red = [];
-
-  Object.entries(result).forEach(([name, data]) => {
-
-    const card = `
-      <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-
-        <div class="flex items-center justify-between">
-
-          <div>
-            <div class="font-black text-lg">${name}</div>
-            <div class="text-sm text-slate-300 mt-1">${data.lane}</div>
-          </div>
-
-          ${data.captain
-            ? `<div class="px-3 py-1 rounded-full bg-amber-300 text-slate-950 text-xs font-black">队长</div>`
-            : ""
-          }
-
-        </div>
-
-      </div>
-    `;
-
-    if (data.team === "blue") {
-      blue.push(card);
-    } else {
-      red.push(card);
-    }
-  });
-
-  $("blueTeam").innerHTML = `
-    <div class="grid grid-cols-1 gap-3">
-      ${blue.join("")}
-    </div>
-  `;
-
-  $("redTeam").innerHTML = `
-    <div class="grid grid-cols-1 gap-3">
-      ${red.join("")}
-    </div>
-  `;
+function render(res){
+function block(team,map,total){
+return LANES.map(l=>{
+const p=team.find(x=>map[x.name]===l);
+const laneScore=p.lanes[l];
+const score=SCORE[laneScore];
+return `<div class='flex justify-between border-b border-white/10 py-1'>
+<div>${l}：${p.name}</div>
+<div class='text-right text-xs'>${laneScore} / ${score}</div>
+</div>`;
+}).join('')+`<div class='font-black mt-3'>总分：${total.toFixed(1)}</div>`;
 }
 
-function solve() {
+const blueWR=winRate(res.diff);
+const redWR=100-blueWR;
 
-  try {
-
-    showError("");
-
-    const config = buildConfig();
-
-    const result = solveTeams(config);
-
-    if (!result) {
-      return showError(`
-        <div class="font-black text-lg mb-2">当前规则无合法解</div>
-
-        <ul class="list-disc pl-5 space-y-1 text-sm">
-          <li>可能有过多固定位置冲突</li>
-          <li>可能恩怨组占用了相同路线</li>
-          <li>可能队长/幻神约束冲突</li>
-        </ul>
-      `);
-    }
-
-    renderResult(result);
-
-  } catch (err) {
-
-    showError(err.message);
-  }
+$('blue').innerHTML=block(res.blue,res.ba.map,res.blueTotal)+`<div class='text-cyan-300 font-black'>胜率：${blueWR.toFixed(1)}%</div>`;
+$('red').innerHTML=block(res.red,res.ra.map,res.redTotal)+`<div class='text-pink-300 font-black'>胜率：${redWR.toFixed(1)}%</div>`;
 }
 
-$("loadPlayersBtn").addEventListener("click", loadPlayers);
-
-$("solveBtn").addEventListener("click", solve);
-
-$("addEnemyBtn").addEventListener("click", addEnemyRow);
-
+renderPool();
+$('addEnemy').onclick=addEnemyRow;
+$('runBtn').onclick=run;
 </script>
-
 </body>
 </html>
-```
