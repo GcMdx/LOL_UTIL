@@ -1,61 +1,100 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>英雄联盟5V5英雄随机器</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      background:
-        radial-gradient(circle at 18% 8%, rgba(37, 99, 235, .35), transparent 32%),
-        radial-gradient(circle at 82% 12%, rgba(220, 38, 38, .30), transparent 30%),
-        radial-gradient(circle at 50% 110%, rgba(202, 138, 4, .16), transparent 38%),
-        #020617;
-    }
-    .glass { background: rgba(15, 23, 42, .72); backdrop-filter: blur(18px); box-shadow: 0 24px 80px rgba(0,0,0,.35); }
-    .hero-card { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease; }
-    .hero-card:hover { transform: translateY(-3px); border-color: rgba(234,179,8,.65); box-shadow: 0 12px 28px rgba(0,0,0,.35), 0 0 22px rgba(234,179,8,.10); background: rgba(15,23,42,.92); }
-    .gold-text { background: linear-gradient(90deg, #fde68a, #f59e0b, #fef3c7); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .lane-title::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: #facc15; box-shadow: 0 0 18px rgba(250,204,21,.8); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LoL 5V5 工具箱 - 智能分组与英雄随机</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body {
+    background:
+      radial-gradient(circle at 18% 8%, rgba(37, 99, 235, .35), transparent 32%),
+      radial-gradient(circle at 82% 12%, rgba(220, 38, 38, .30), transparent 30%),
+      radial-gradient(circle at 50% 110%, rgba(202, 138, 4, .16), transparent 38%),
+      #020617;
+    color: #e2e8f0;
+  }
+  .glass { background: rgba(15, 23, 42, .72); backdrop-filter: blur(18px); box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+  select, input { color: #000; background: #fff; }
+  .hero-card { transition: transform .s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+  .hero-card:hover { transform: translateY(-3px); border-color: rgba(234,179,8,.65); box-shadow: 0 12px 28px rgba(0,0,0,.35), 0 0 22px rgba(234,179,8,.10); background: rgba(15,23,42,.92); }
+  .gold-text { background: linear-gradient(90deg, #fde68a, #f59e0b, #fef3c7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lane-title::before { content: ""; width: 8px; height: 8px; border-radius: 999px; background: #facc15; box-shadow: 0 0 18px rgba(250,204,21,.8); }
+  .tab-btn.active { background: linear-gradient(90deg, #fde68a, #f59e0b); color: #020617; }
+</style>
 </head>
-<body class="min-h-screen text-slate-100 selection:bg-amber-400 selection:text-slate-950">
-  <div class="max-w-7xl mx-auto px-4 py-8 md:py-10">
-    <header class="mb-7 text-center relative">
-      <div class="inline-flex items-center gap-2 rounded-full border border-amber-300/25 bg-amber-300/10 px-4 py-1.5 text-xs text-amber-100 shadow-lg shadow-amber-950/20">
-        <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,.9)]"></span>
-        Python 生成 · OPGG.CN 数据 · 双方英雄不重复 · 使用英雄称号
-      </div>
-      <div class="mt-4">
-        <a href="group_random.html" class="inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/20 transition">
-          前往分组随机子页面
-        </a>
-      </div>
-      <h1 class="mt-4 text-4xl md:text-6xl font-black tracking-tight gold-text">英雄联盟5V5英雄随机器</h1>
-      <p class="mt-3 text-slate-300">按分路随机英雄，英雄池由 Python 脚本从 opgg.cn/champions 抓取生成。</p>
-      <p class="mt-2 text-sm text-amber-200/90">当前游戏版本：<span id="gameVersion" class="font-bold">-</span></p>
-      <p class="mt-1 text-xs text-emerald-300">已优化：多位置英雄随机锁定单分路，所有英雄抽取概率均等</p>
-    </header>
+<body class="min-h-screen p-6 selection:bg-amber-400 selection:text-slate-950">
+<div class="max-w-7xl mx-auto space-y-6">
+  <header class="mb-2 text-center">
+    <h1 class="mt-4 text-4xl md:text-5xl font-black tracking-tight gold-text">英雄联盟 5V5 工具箱</h1>
+    <p class="mt-3 text-slate-300">智能分组 & 英雄随机 一站式搞定</p>
+    <div class="mt-6 inline-flex rounded-2xl border border-white/10 p-1 gap-1 bg-slate-950/50">
+      <button class="tab-btn active rounded-xl px-6 py-2 font-bold transition" data-tab="group">智能分组 V2</button>
+      <button class="tab-btn rounded-xl px-6 py-2 font-bold transition text-slate-300 hover:text-white" data-tab="random">英雄随机器</button>
+    </div>
+  </header>
 
-    <section class="mb-7 rounded-3xl border border-white/10 glass p-4 md:p-5">
+  <!-- Tab 1: 智能分组 -->
+  <div id="tab-group" class="tab-content space-y-5">
+    <div class="glass rounded-3xl p-5">
+      <div class="flex gap-2 flex-wrap">
+        <input id="playerSearch" class="rounded px-3 py-2 flex-1 bg-white/90" placeholder="搜索玩家">
+        <button id="allBtn" class="bg-emerald-300 text-black px-3 py-2 rounded font-bold">全选</button>
+        <button id="noneBtn" class="bg-yellow-300 text-black px-3 py-2 rounded font-bold">取消</button>
+        <button id="reverseBtn" class="bg-sky-300 text-black px-3 py-2 rounded font-bold">反选</button>
+      </div>
+      <div id="playerPool" class="grid md:grid-cols-5 gap-2 mt-3"></div>
+
+      <div class="mt-4 flex flex-wrap gap-4 bg-slate-950/50 p-3 rounded-xl">
+        <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="mode" value="fun" class="accent-amber-400"> 神将</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="mode" value="serious" class="accent-amber-400"> 红温</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="mode" value="random" checked class="accent-amber-400"> 普通40-60%</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="mode" value="trueRandom" class="accent-amber-400"> 真随机</label>
+      </div>
+
+      <button id="runBtn" class="mt-4 bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 text-slate-950 px-5 py-2 rounded font-black shadow-lg shadow-amber-950/30 active:scale-95 transition">开始分组</button>
+      <div id="error" class="text-red-300 mt-2 font-bold"></div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="glass rounded-3xl p-5 border border-blue-300/25">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-black text-2xl text-blue-300">蓝队</h2>
+          <div class="h-10 w-10 rounded-2xl bg-blue-400/20 border border-blue-200/20 grid place-items-center font-black text-blue-100">B</div>
+        </div>
+        <div id="blue"></div>
+      </div>
+      <div class="glass rounded-3xl p-5 border border-red-300/25">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-black text-2xl text-red-300">红队</h2>
+          <div class="h-10 w-10 rounded-2xl bg-red-400/20 border border-red-200/20 grid place-items-center font-black text-red-100">R</div>
+        </div>
+        <div id="red"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: 英雄随机 -->
+  <div id="tab-random" class="tab-content hidden space-y-5">
+    <section class="rounded-3xl border border-white/10 glass p-4 md:p-5">
       <div class="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
         <div class="flex flex-col sm:flex-row gap-4 sm:items-end">
           <div>
             <label for="count" class="block text-sm font-semibold text-slate-200 mb-2">每个分路随机数量 n</label>
             <div class="flex items-center rounded-2xl border border-white/10 bg-slate-950/70 p-1.5 focus-within:ring-2 focus-within:ring-amber-400/60">
-              <button id="minusBtn" class="h-10 w-10 rounded-xl bg-slate-800 hover:bg-slate-700 font-black transition" type="button">−</button>
+              <button id="minusBtn" class="h-10 w-10 rounded-xl bg-slate-800 hover:bg-slate-700 font-black transition text-white" type="button">−</button>
               <input id="count" type="number" min="1" max="5" value="3" class="w-20 bg-transparent px-3 py-2 text-center text-lg font-black text-white outline-none" />
-              <button id="plusBtn" class="h-10 w-10 rounded-xl bg-slate-800 hover:bg-slate-700 font-black transition" type="button">+</button>
+              <button id="plusBtn" class="h-10 w-10 rounded-xl bg-slate-800 hover:bg-slate-700 font-black transition text-white" type="button">+</button>
             </div>
           </div>
         </div>
-
         <div class="flex flex-col sm:flex-row gap-3">
           <button id="randomBtn" class="rounded-2xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 hover:from-amber-200 hover:to-yellow-300 text-slate-950 font-black px-7 py-3 transition shadow-lg shadow-amber-950/30 active:scale-95">开始随机</button>
           <button id="clearBtn" class="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-100 font-bold px-6 py-3 transition active:scale-95">清空结果</button>
         </div>
       </div>
+      <p class="mt-2 text-xs text-amber-200/90">当前游戏版本：<span id="gameVersion" class="font-bold">-</span></p>
+      <p class="mt-1 text-xs text-emerald-300">已优化：多位置英雄随机锁定单分路，所有英雄抽取概率均等</p>
     </section>
 
     <main class="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -75,13 +114,10 @@
         <div id="redTeam" class="p-4 space-y-4"></div>
       </section>
     </main>
-
-    <footer class="mt-7 text-center text-xs text-slate-500">
-      英雄池由 Python 脚本从 opgg.cn/champions 生成；重新运行脚本即可更新。
-    </footer>
   </div>
+</div>
 
-  <script type="text/plain" id="heroLaneConfig">
+<script type="text/plain" id="heroLaneConfig">
 黑暗之女·安妮：中路
 狂战士·奥拉夫：上路
 正义巨像·加里奥：中路，辅助
@@ -125,6 +161,365 @@
 海洋之灾·普朗克：上路
 英勇投弹手·库奇：下路，中路
 天启者·卡尔玛：辅助
+瓦洛兰之盾·塔里克：辅助
+邪恶小法师·维迦：中路，下路
+诺克萨斯统领·斯维因：上路，中路，辅助
+皮城女警·凯特琳：下路
+蒸汽机器人·布里茨：辅助
+熔岩巨兽·墨菲特：上路，中路
+不祥之刃·卡特琳娜：中路
+永恒梦魇·魔腾：打野
+扭曲树精·茂凯：上路，打野，辅助
+荒漠屠夫·雷克顿：上路
+德玛西亚皇子·嘉文四世：打野
+蜘蛛女皇·伊莉丝：打野，辅助
+发条魔灵·奥莉安娜：中路
+齐天大圣·孙悟空：上路，打野
+复仇焰魂·布兰德：打野，中路，辅助
+盲僧·李青：打野
+暗夜猎手·薇恩：上路，下路
+机械公敌·兰博：上路，中路
+魔蛇之拥·卡西奥佩娅：上路，中路
+上古领主·斯卡纳：上路，打野
+大发明家·黑默丁格：上路，中路
+沙漠死神·内瑟斯：上路
+狂野女猎手·奈德丽：打野
+兽灵行者·乌迪尔：上路，打野
+圣锤之毅·波比：上路，打野，辅助
+酒桶·古拉加斯：上路，打野
+不屈之枪·潘森：上路，打野，中路，辅助
+探险家·伊泽瑞尔：下路
+铁铠冥魂·莫德凯撒：上路
+牧魂人·约里克：上路
+离群之刺·阿卡丽：上路，中路
+狂暴之心·凯南：上路
+德玛西亚之力·盖伦：上路
+曙光女神·蕾欧娜：辅助
+虚空先知·玛尔扎哈：中路
+刀锋之影·泰隆：打野，中路
+放逐之刃·锐雯：上路
+深渊巨口·克格莫：下路
+暮光之眼·慎：上路
+光辉女郎·拉克丝：中路，辅助
+远古巫灵·泽拉斯：中路，下路，辅助
+龙血武姬·希瓦娜：打野
+九尾妖狐·阿狸：中路
+法外狂徒·格雷福斯：打野
+潮汐海灵·菲兹：打野，中路
+不灭狂雷·沃利贝尔：上路
+傲之追猎者·雷恩加尔：打野
+惩戒之箭·韦鲁斯：上路，下路
+深海泰坦·诺提勒斯：辅助
+奥术先驱·维克托：中路
+北地之怒·瑟庄妮：打野
+无双剑姬·菲奥娜：上路
+爆破鬼才·吉格斯：下路，中路
+仙灵女巫·璐璐：辅助
+荣耀行刑官·德莱文：下路
+战争之影·赫卡里姆：打野
+虚空掠夺者·卡兹克：打野
+诺克萨斯之手·德莱厄斯：上路
+未来守护者·杰斯：上路，打野，中路
+冰霜女巫·丽桑卓：中路
+皎月女神·黛安娜：打野，中路
+德玛西亚之翼·奎因：上路，打野
+暗黑元首·辛德拉：中路
+铸星龙王·奥瑞利安·索尔：中路，下路
+影流之镰·凯隐：打野
+暮光星灵·佐伊：中路，辅助
+荆棘之兴·婕拉：打野，辅助
+虚空之女·卡莎：下路
+星籁歌姬·萨勒芬妮：辅助
+迷失之牙·纳尔：上路
+生化魔人·扎克：上路，打野，中单
+疾风剑豪·亚索：上路，中路
+虚空之眼·维克兹：辅助，中路
+岩雀·塔莉垭：打野，中路
+青钢影·卡蜜尔：上路，辅助
+影哨·阿克尚：中路
+虚空女皇·卑尔维斯：打野
+弗雷尔卓德之心·布隆：辅助
+戏命师·烬：下路
+永猎双子·千珏：打野
+祖安花火·泽丽：下路
+暴走萝莉·金克丝：下路
+河流之王·塔姆：辅助
+狂厄蔷薇·贝蕾亚：打野
+破败之王·佛耶戈：打野
+涤魂圣枪·赛娜：下路，辅助
+圣枪游侠·卢锡安：下路
+影流之主·劫：中路
+暴怒骑士·克烈：上路
+时间刺客·艾克：打野，中路
+元素女皇·奇亚娜：打野，中路
+皮城执法官·蔚：打野
+暗裔剑魔·亚托克斯：上路
+唤潮鲛姬·娜美：辅助
+沙漠皇帝·阿兹尔：中路
+魔法猫咪·悠米：辅助
+沙漠玫瑰·莎弥拉：下路
+魂锁典狱长·锤石：辅助
+海兽祭司·俄洛伊：上路
+虚空遁地兽·雷克塞：打野
+翠神·艾翁：打野
+复仇之矛·卡莉丝塔：下路
+星界游神·巴德：辅助
+幻翎·洛：辅助
+逆羽·霞：下路
+山隐之焰·奥恩：上路
+解脱者·塞拉斯：上路，打野，中路，辅助
+万花通灵·妮蔻：中路，辅助
+残月之肃·厄斐琉斯：下路
+镕铁少女·芮尔：辅助
+血港鬼影·派克：辅助
+愁云使者·薇古丝：中路
+封魔剑魂·永恩：上路，中路
+铁血狼母·安蓓萨：上路，打野
+流光镜影·梅尔：中路，下路，辅助
+不破之誓·芸阿娜：下路
+腕豪·瑟提：上路
+含羞蓓蕾·莉莉娅：打野
+灵罗娃娃·格温：上路
+双界灵兔·阿萝拉：上路，中路
+纳祖芒荣耀·奎桑提：上路
+炽炎雏龙·斯莫德：下路，中路
+明烛·米利欧：辅助
+不落魔锋·亚恒：上路
+异画师·彗：中路，辅助，下路
+百裂冥犬·纳亚菲利：打野，中路
+</script>
+
+<script>
+  // ================= 公用方法 =================
+  const $ = id => document.getElementById(id);
+  
+  function shuffle(a){
+    a = [...a];
+    for(let i=a.length-1;i>0;i--){
+      let j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  // ================= Tab 切换逻辑 =================
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active', 'text-slate-950');
+        b.classList.add('text-slate-300');
+      });
+      btn.classList.add('active', 'text-slate-950');
+      btn.classList.remove('text-slate-300');
+      
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      $('tab-' + tab).classList.remove('hidden');
+    });
+  });
+
+  // ================= 智能分组逻辑 =================
+  const PLAYERS = [
+    {name:"后妈", lanes:{上路:"NPC",打野:"拉完了",中路:"拉完了",下路:"NPC",辅助:"人上人"}},
+    {name:"银河", lanes:{上路:"人上人",打野:"夯",中路:"人上人",下路:"夯",辅助:"顶级"}},
+    {name:"经理", lanes:{上路:"NPC",打野:"拉完了",中路:"人上人",下路:"NPC",辅助:"NPC"}},
+    {name:"只是npc", lanes:{上路:"人上人",打野:"人上人",中路:"人上人",下路:"夯",辅助:"NPC"}},
+    {name:"亚非王", lanes:{上路:"夯",打野:"顶级",中路:"顶级",下路:"人上人",辅助:"NPC"}},
+    {name:"小寻", lanes:{上路:"人上人",打野:"NPC",中路:"NPC",下路:"NPC",辅助:"NPC"}},
+    {name:"雄狮", lanes:{上路:"顶级",打野:"上人",中路:"夯",下路:"人上人",辅助:"人上人"}},
+    {name:"天空", lanes:{上路:"人上人",打野:"夯",中路:"夯",下路:"人上人",辅助:"NPC"}},
+    {name:"阿呆", lanes:{上路:"拉完了",打野:"顶级",中路:"顶级",下路:"NPC",辅助:"夯"}},
+    {name:"小智", lanes:{上路:"NPC",打野:"人上人",中路:"顶级",下路:"人上人",辅助:"NPC"}},
+    {name:"7053", lanes:{上路:"顶级",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"人上人"}},
+    {name:"大小眼", lanes:{上路:"NPC",打野:"夯",中路:"人上人",下路:"夯",辅助:"人上人"}},
+    {name:"两败俱伤", lanes:{上路:"拉完了",打野:"拉完了",中路:"拉完了",下路:"拉完了",辅助:"拉完了"}},
+    {name:"徐凤年", lanes:{上路:"NPC",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"顶级"}},
+    {name:"小梅", lanes:{上路:"拉完了",打野:"拉完了",中路:"NPC",下路:"拉完了",辅助:"NPC"}},
+    {name:"喜丶悦", lanes:{上路:"NPC",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"NPC"}},
+    {name:"苏神", lanes:{上路:"人上人",打野:"人上人",中路:"顶级",下路:"NPC",辅助:"拉完了"}},
+    {name:"小柠檬", lanes:{上路:"NPC",打野:"拉完了",中路:"NPC",下路:"顶级",辅助:"NPC"}},
+    {name:"ztt", lanes:{上路:"NPC",打野:"NPC",中路:"顶级",下路:"NPC",辅助:"NPC"}},
+    {name:"韩国飞行员", lanes:{上路:"人上人",打野:"NPC",中路:"人上人",下路:"夯",辅助:"人上人"}},
+    {name:"对抗路c", lanes:{上路:"夯",打野:"NPC",中路:"NPC",下路:"NPC",辅助:"NPC"}},
+    {name:"过江鱼", lanes:{上路:"NPC",打野:"顶级",中路:"拉完了",下路:"NPC",辅助:"NPC"}},
+    {name:"杨子哥", lanes:{上路:"拉完了",打野:"人上人",中路:"NPC",下路:"顶级",辅助:"人上人"}},
+    {name:"双大哥", lanes:{上路:"顶级",打野:"顶级",中路:"人上人",下路:"NPC",辅助:"顶级"}},
+    {name:"鱼玄机", lanes:{上路:"顶级",打野:"夯",中路:"顶级",下路:"顶级",辅助:"人上人"}},
+    {name:"辉子", lanes:{上路:"拉完了",打野:"NPC",中路:"拉完了",下路:"拉完了",辅助:"拉完了"}},
+    {name:"友人A", lanes:{上路:"NPC",打野:"NPC",中路:"NPC",下路:"人上人",辅助:"顶级"}},
+    {name:"小碗儿凶巴巴", lanes:{上路:"顶级",打野:"夯爆了",中路:"顶级",下路:"夯",辅助:"顶级"}},
+    {name:"爱的日记", lanes:{上路:"夯",打野:"夯爆了",中路:"夯爆了",下路:"夯",辅助:"夯"}},
+    {name:"hp", lanes:{上路:"顶级",打野:"顶级",中路:"顶级",下路:"夯",辅助:"顶级"}},
+    {name:"元台", lanes:{上路:"顶级",打野:"人上人",中路:"人上人",下路:"人上人",辅助:"人上人"}},     
+    {name:"ex", lanes:{上路:"夯",打野:"夯",中路:"夯",下路:"夯",辅助:"夯"}},
+    {name:"董大", lanes:{上路:"拉完了",打野:"拉完了",中路:"拉完了",下路:"拉完了",辅助:"NPC"}},
+    {name:"我还木有想好", lanes:{上路:"NPC",打野:"拉完了",中路:"人上人",下路:"NPC",辅助:"人上人"}},
+    {name:"笑靥似红花", lanes:{上路:"顶级",打野:"拉完了",中路:"人上人",下路:"人上人",辅助:"拉完了"}},
+    {name:"热河路", lanes:{上路:"顶级",打野:"顶级",中路:"夯",下路:"夯",辅助:"顶级"}}
+  ];
+
+  const SCORE = { "夯爆了":260,"夯":210,"顶级":170,"人上人":130,"NPC":90,"拉完了":50,"人机":10 };
+  const FUN = { "夯爆了":10,"夯":50,"顶级":90,"人上人":130,"NPC":170,"拉完了":210,"人机":260 };
+  const LANE_WEIGHT = { "上路":0.9, "打野":1.35, "中路":1.3, "下路":1.05, "辅助":0.9 };
+  const LANES = ["上路","打野","中路","下路","辅助"];
+
+  function renderPool(){
+    $('playerPool').innerHTML = PLAYERS.map(p=>`
+      <label class="bg-slate-800/80 rounded p-2 playerItem cursor-pointer hover:bg-slate-700 transition">
+        <input type="checkbox" value="${p.name}" class="accent-amber-400 mr-1">
+        ${p.name}
+      </label>`).join("");
+  }
+
+  function selected(){
+    return [...document.querySelectorAll("#playerPool input:checked")]
+    .map(v=>PLAYERS.find(x=>x.name===v.value));
+  }
+
+  function score(player,lane,mode){
+    let lv=player.lanes[lane];
+    let base=mode=="fun"?FUN[lv]:SCORE[lv];
+    return base*LANE_WEIGHT[lane];
+  }
+
+  function assign(team,mode,full){
+    let best=null;
+    function dfs(i,used,map,total){
+      if(i===team.length){
+        if(!best||total>best.total)best={map:{...map},total};
+        return;
+      }
+      let p=team[i];
+      for(let lane of LANES){
+        if(used.has(lane))continue;
+        used.add(lane);
+        map[p.name]=lane;
+        dfs(i+1,used,map,total+(full?Math.random()*300:score(p,lane,mode)));
+        used.delete(lane);
+        delete map[p.name];
+      }
+    }
+    dfs(0,new Set(),{},0);
+    return best;
+  }
+
+  function calc(team,map){
+    return team.reduce((s,p)=>{
+      let lane=map[p.name];
+      return s+SCORE[p.lanes[lane]]*LANE_WEIGHT[lane];
+    },0);
+  }
+
+  function win(diff){
+    return 100/(1+Math.exp(-diff/140));
+  }
+
+  function render(team,map,total,id){
+    $(id).innerHTML=LANES.map(l=>{
+      let p=team.find(x=>map[x.name]==l);
+      let lv=p.lanes[l];
+      return `<div class="flex justify-between py-1 border-b border-white/10"><span class="font-bold">${l}: ${p.name}</span><span class="text-amber-300">${lv}</span></div>`;
+    }).join("")+`<div class="mt-3 font-bold text-lg">总分: <span class="text-amber-300">${total.toFixed(1)}</span></div>`;
+  }
+
+  $('runBtn').onclick=()=>{
+    $('error').textContent="";
+    let ps=selected();
+    if(ps.length!=10){
+      $('error').textContent="请选择10人";
+      return;
+    }
+    let mode=document.querySelector("input[name=mode]:checked").value;
+
+    if(mode=="trueRandom"){
+      let s=shuffle(ps);
+      show(s.slice(0,5),s.slice(5));
+      return;
+    }
+
+    let best=null;
+    for(let i=0;i<2500;i++){
+      let s=shuffle(ps);
+      let blue=s.slice(0,5);
+      let red=s.slice(5);
+      let ba=assign(blue,mode,mode=="random");
+      let ra=assign(red,mode,mode=="random");
+      let bt=calc(blue,ba.map);
+      let rt=calc(red,ra.map);
+      let wr=win(bt-rt);
+
+      if(mode=="random"){
+        if(wr<40||wr>60)continue;
+      }
+      let diff=Math.abs(bt-rt);
+      if(!best||diff<best.diff){
+        best={blue,red,ba,ra,bt,rt};
+      }
+    }
+
+    if(!best){
+      $('error').textContent="没有找到满足条件分组，可重新尝试";
+      return;
+    }
+
+    render(best.blue,best.ba.map,best.bt,"blue");
+    render(best.red,best.ra.map,best.rt,"red");
+
+    let b=win(best.bt-best.rt);
+    $('blue').innerHTML+=`<div class="text-cyan-300 font-bold mt-3 text-xl">胜率: ${b.toFixed(1)}%</div>`;
+    $('red').innerHTML+=`<div class="text-pink-300 font-bold mt-3 text-xl">胜率: ${(100-b).toFixed(1)}%</div>`;
+  };
+
+  function show(blueTeam,redTeam){
+    let bm={},rm={};
+    let ls=[...LANES];
+    for(let p of blueTeam){
+      let i=Math.floor(Math.random()*ls.length);
+      bm[p.name]=ls.splice(i,1)[0];
+    }
+    ls=[...LANES];
+    for(let p of redTeam){
+      let i=Math.floor(Math.random()*ls.length);
+      rm[p.name]=ls.splice(i,1)[0];
+    }
+    let bt=calc(blueTeam,bm),rt=calc(redTeam,rm);
+    render(blueTeam,bm,bt,"blue");
+    render(redTeam,rm,rt,"red");
+    let b=win(bt-rt);
+    $('blue').innerHTML+=`<div class="text-cyan-300 font-bold mt-3 text-xl">胜率: ${b.toFixed(1)}%</div>`;
+    $('red').innerHTML+=`<div class="text-pink-300 font-bold mt-3 text-xl">胜率: ${(100-b).toFixed(1)}%</div>`;
+  }
+
+  $('playerSearch').oninput=e=>{
+    let k=e.target.value.toLowerCase();
+    document.querySelectorAll(".playerItem").forEach(x=>{
+      x.style.display=x.innerText.toLowerCase().includes(k)?"block":"none";
+    });
+  };
+
+  $('allBtn').onclick=()=>document.querySelectorAll("#playerPool input").forEach(x=>x.checked=true);
+  $('noneBtn').onclick=()=>document.querySelectorAll("#playerPool input").forEach(x=>x.checked=false);
+  $('reverseBtn').onclick=()=>document.querySelectorAll("#playerPool input").forEach(x=>x.checked=!x.checked);
+
+  renderPool();
+
+
+  // ================= 英雄随机逻辑 =================
+  const OPGG_GAME_VERSION = "16.9";
+  const VERSION = OPGG_GAME_VERSION === "未知" ? "14.24.1" : `${OPGG_GAME_VERSION}.1`;
+  const FALLBACK_VERSION = "14.23.1";
+
+  const lanes = [
+    { key: "top", name: "上路", icon: "TOP" },
+    { key: "jungle", name: "打野", icon: "JUG" },
+    { key: "mid", name: "中路", icon: "MID" },
+    { key: "adc", name: "下路", icon: "ADC" },
+    { key: "support", name: "辅助", icon: "SUP" }
+  ];
+
+  const laneNameToKey = { 上路: "top", 打野: "jungle", 中路: "mid", 下路: "adc", 辅助: "support" };
+  const championTitles = {
+    "Annie": "黑暗之女·安妮","Olaf": "狂战士·奥拉夫","Galio": "正义巨像·加里奥","TwistedFate": "卡牌大师·崔斯特","XinZhao": "德邦总管·赵信","Urgot": "无畏战车·厄加特","Leblanc": "诡术妖姬·乐芙兰","Vladimir": "猩红收割者·弗拉基米尔","Fiddlesticks": "远古恐惧·费德提克","Kayle": "正义天使·凯尔","MasterYi": "无极剑圣·易","Alistar": "牛头酋长·阿利斯塔","Ryze": "符文法师·瑞兹","Sion": "亡灵战神·赛恩","Sivir": "战争女神·希维尔","Soraka": "众星之子·索拉卡","Teemo": "迅捷斥候·提莫","Tristana": "麦林炮手·崔丝塔娜","Warwick": "祖安怒兽·沃里克","Nunu": "雪原双子·努努和威朗普","MissFortune": "赏金猎人·厄运小姐","Ashe": "寒冰射手·艾希","Tryndamere": "蛮族之王·泰达米尔","Jax": "武器大师·贾克斯","Morgana": "堕落天使·莫甘娜","Zilean": "时光守护者·基兰","Singed": "炼金术士·辛吉德","Evelynn": "痛苦之拥·伊芙琳","Twitch": "瘟疫之源·图奇","Karthus": "死亡颂唱者·卡尔萨斯","Chogath": "虚空恐惧·科加斯","Amumu": "殇之木乃伊·阿木木","Rammus": "披甲龙龟·拉莫斯","Anivia": "冰晶凤凰·艾尼维亚","Shaco": "恶魔小丑·萨科","DrMundo": "祖安狂人·蒙多医生","Sona": "琴瑟仙女·娑娜","Kassadin": "虚空行者·卡萨丁","Irelia": "刀锋舞者·艾瑞莉娅","Janna": "风暴之怒·迦娜","Gangplank": "海洋之灾·普朗克","Corki": "英勇投弹手·库奇","Karma": "天启者·卡尔玛","Taric": "瓦洛兰之盾·塔里克","Veigar": "邪恶小法师·维迦","Trundle": "巨魔之王·特朗德尔","Swain": "诺克萨斯统领·斯维因","Caitlyn": "皮城女警·凯特琳","Blitzcrank": "蒸汽机器人·布里茨","Malphite": "熔岩巨兽·墨菲特","Katarina": "不祥之刃·卡特琳娜","Nocturne": "永恒梦魇·魔腾","Maokai": "扭曲树精·茂凯","Renekton": "荒漠屠夫·雷克顿","JarvanIV": "德玛西亚皇子·嘉文四世","Elise": "蜘蛛 
 瓦洛兰之盾·塔里克：辅助
 邪恶小法师·维迦：中路，下路
 诺克萨斯统领·斯维因：上路，中路，辅助
