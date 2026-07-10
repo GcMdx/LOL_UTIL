@@ -9,11 +9,13 @@
 body{background:#020617;color:#e2e8f0}
 .glass{background:rgba(15,23,42,.72);backdrop-filter:blur(16px)}
 select,input{color:#000}
+.lock-item{background:#1e293b;border:1px solid #334155}
+.lock-item.locked{border-color:#f59e0b;background:#2d2310}
 </style>
-</head>
+</>
 <body class="min-h-screen p-6">
 <div class="max-w-7xl mx-auto space-y-5">
-<h1 class="text-4xl font-black">5V5 智能分组 V2</h1>
+<h1 class="text-4xl font-black">5V5 智能分组 V2.1</h1>
 
 <div class="glass rounded-3xl p-5">
 <div class="flex gap-2 flex-wrap">
@@ -29,6 +31,16 @@ select,input{color:#000}
 <label><input type="radio" name="mode" value="serious"> 红温</label>
 <label><input type="radio" name="mode" value="random" checked> 普通40-60%</label>
 <label><input type="radio" name="mode" value="trueRandom"> 真随机</label>
+</div>
+
+<!-- 位置锁定区 -->
+<div class="mt-4 border-t border-white/10 pt-4">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="font-bold text-lg">位置锁定（可选，每个位置最多2人）</h3>
+    <button id="clearLockBtn" class="bg-rose-300 text-black px-3 py-1 rounded text-sm">清空锁定</button>
+  </div>
+  <div id="lockSection" class="grid md:grid-cols-5 gap-2"></div>
+  <div id="lockError" class="text-red-300 mt-2 text-sm"></div>
 </div>
 
 <button id="runBtn" class="mt-4 bg-emerald-300 text-black px-5 py-2 rounded font-bold">开始分组</button>
@@ -122,6 +134,10 @@ playerPool.innerHTML=PLAYERS.map(p=>`
 <input type="checkbox" value="${p.name}">
 ${p.name}
 </label>`).join("");
+// 选中状态变化时重建锁定UI
+document.querySelectorAll("#playerPool input").forEach(c=>{
+c.addEventListener("change",buildLockUI);
+});
 }
 
 function selected(){
@@ -135,29 +151,157 @@ let base=mode=="fun"?FUN[lv]:SCORE[lv];
 return base*LANE_WEIGHT[lane];
 }
 
-function assign(team,mode,full){
-let best=null;
-
-function dfs(i,used,map,total){
-if(i===team.length){
-if(!best||total>best.total)best={map:{...map},total};
+/* === 位置锁定相关 === */
+function buildLockUI(){
+const ps=selected();
+const lockDiv=$("lockSection");
+if(ps.length===0){
+lockDiv.innerHTML="<p class='text-slate-400 text-sm'>请先选择玩家</p>";
 return;
 }
-let p=team[i];
+// 保留之前已选择的锁定
+const prev={};
+document.querySelectorAll(".lockSelect").forEach(s=>{
+if(s.value) prev[s.dataset.player]=s.value;
+});
+lockDiv.innerHTML=ps.map(p=>{
+const cur=prev[p.name]||"";
+return `<label class="lock-item ${cur?'locked':''} rounded p-2 flex items-center gap-2">
+<span class="flex-1 truncate">${p.name}</span>
+<select class="lockSelect rounded px-2 py-1 text-sm" data-player="${p.name}">
+<option value="">不指定</option>
+${LANES.map(l=>`<option value="${l}" ${cur===l?'selected':''}>${l}</option>`).join("")}
+</select>
+</label>`;
+}).join("");
+// 切换锁定样式
+document.querySelectorAll(".lockSelect").forEach(s=>{
+s.addEventListener("change",e=>{
+const label=e.target.closest(".lock-item");
+if(e.target.value) label.classList.add("locked");
+else label.classList.remove("locked");
+validateLocksUI();
+});
+});
+validateLocksUI();
+}
 
-for(let lane of LANES){
-if(used.has(lane))continue;
+function getLocks(){
+const locks={};
+document.querySelectorAll(".lockSelect").forEach(sel=>{
+if(sel.value) locks[sel.dataset.player]=sel.value;
+});
+return locks;
+}
 
+function validateLocks(locks){
+const cnt={};
+for(const lane of Object.values(locks)){
+cnt[lane]=(cnt[lane]||0)+1;
+if(cnt[lane]>2) return `位置[${lane}]锁定超过2人，每个位置最多2人`;
+}
+return null;
+}
+
+function validateLocksUI(){
+const err=validateLocks(getLocks());
+$("lockError").textContent=err||"";
+}
+
+/* === 分队：尊重锁定 === */
+function splitTeamsWithLocks(ps,locks){
+const laneLocked={};
+LANES.forEach(l=>laneLocked[l]=[]);
+const unlocked=[];
+ps.forEach(p=>{
+if(locks[p.name]) laneLocked[locks[p.name]].push(p);
+else unlocked.push(p);
+});
+
+const blue=[];
+const red=[];
+const blueLocks={};
+const redLocks={};
+
+// 同位置锁2人：强制分到不同队
+for(const lane of LANES){
+if(laneLocked[lane].length===2){
+const [a,b]=laneLocked[lane];
+if(Math.random()<0.5){
+blue.push(a); blueLocks[a.name]=lane;
+red.push(b); redLocks[b.name]=lane;
+}else{
+blue.push(b); blueLocks[b.name]=lane;
+red.push(a); redLocks[a.name]=lane;
+}
+}
+}
+
+// 同位置锁1人：随机分到一队
+for(const lane of LANES){
+if(laneLocked[lane].length===1){
+const p=laneLocked[lane][0];
+const canBlue=blue.length<5;
+const canRed=red.length<5;
+if(canBlue&&canRed){
+if(Math.random()<0.5){ blue.push(p); blueLocks[p.name]=lane; }
+else{ red.push(p); redLocks[p.name]=lane; }
+}else if(canBlue){ blue.push(p); blueLocks[p.name]=lane; }
+else{ red.push(p); redLocks[p.name]=lane; }
+}
+}
+
+// 用未锁定玩家补满
+const rem=shuffle(unlocked);
+let idx=0;
+while(blue.length<5) blue.push(rem[idx++]);
+while(red.length<5) red.push(rem[idx++]);
+
+return {blue,red,blueLocks,redLocks};
+}
+
+/* === 分配位置：尊重锁定 === */
+function assignWithLocks(team,locks,mode,full){
+// 已锁定的玩家直接放到对应位置
+const lockedMap={};
+const usedLanes=new Set();
+team.forEach(p=>{
+if(locks[p.name]){
+lockedMap[p.name]=locks[p.name];
+usedLanes.add(locks[p.name]);
+}
+});
+
+const unlockedMembers=team.filter(p=>!locks[p.name]);
+const availableLanes=LANES.filter(l=>!usedLanes.has(l));
+
+// 全部锁定
+if(unlockedMembers.length===0){
+let total=0;
+team.forEach(p=>{
+const lane=lockedMap[p.name];
+total+=full?Math.random()*300:score(p,lane,mode);
+});
+return {map:lockedMap,total};
+}
+
+let best=null;
+function dfs(i,used,map,total){
+if(i===unlockedMembers.length){
+if(!best||total>best.total) best={map:{...map},total};
+return;
+}
+const p=unlockedMembers[i];
+for(const lane of availableLanes){
+if(used.has(lane)) continue;
 used.add(lane);
 map[p.name]=lane;
-
 dfs(i+1,used,map,total+(full?Math.random()*300:score(p,lane,mode)));
-
 used.delete(lane);
 delete map[p.name];
 }
 }
-dfs(0,new Set(),{},0);
+dfs(0,new Set(),{...lockedMap},0);
 return best;
 }
 
@@ -172,11 +316,15 @@ function win(diff){
 return 100/(1+Math.exp(-diff/140));
 }
 
-function render(team,map,total,id){
+function render(team,map,total,id,locks){
 $(id).innerHTML=LANES.map(l=>{
 let p=team.find(x=>map[x.name]==l);
 let lv=p.lanes[l];
-return `<div class="flex justify-between py-1 border-b border-white/10"><span>${l}:${p.name}</span><span>${lv}</span></div>`;
+const lockMark=(locks&&locks[p.name])?"🔒":"";
+return `<div class="flex justify-between py-1 border-b border-white/10">
+<span>${l}:${p.name} ${lockMark}</span>
+<span>${lv}</span>
+</div>`;
 }).join("")+`<div class="mt-3 font-bold">总分:${total.toFixed(1)}</div>`;
 }
 
@@ -187,70 +335,76 @@ if(ps.length!=10){
 error.textContent="请选择10人";
 return;
 }
+const locks=getLocks();
+const lockErr=validateLocks(locks);
+if(lockErr){
+error.textContent=lockErr;
+return;
+}
+
 let mode=document.querySelector("input[name=mode]:checked").value;
 
 if(mode=="trueRandom"){
-let s=shuffle(ps);
-show(s.slice(0,5),s.slice(5),true);
+// 真随机也尊重锁定
+let best=null;
+for(let i=0;i<500;i++){
+const {blue,red,blueLocks,redLocks}=splitTeamsWithLocks(ps,locks);
+const ba=assignWithLocks(blue,blueLocks,mode,true);
+const ra=assignWithLocks(red,redLocks,mode,true);
+const bt=calc(blue,ba.map);
+const rt=calc(red,ra.map);
+const diff=Math.abs(bt-rt);
+if(!best||diff<best.diff){
+best={blue,red,ba,ra,bt,rt,blueLocks,redLocks};
+}
+}
+if(!best){
+error.textContent="分配失败，请检查锁定设置";
+return;
+}
+showResult(best);
 return;
 }
 
 let best=null;
+const TRIES=2500;
+let validCount=0;
 
-for(let i=0;i<2500;i++){
+for(let i=0;i<TRIES;i++){
+const {blue,red,blueLocks,redLocks}=splitTeamsWithLocks(ps,locks);
 
-let s=shuffle(ps);
-let blue=s.slice(0,5);
-let red=s.slice(5);
+const ba=assignWithLocks(blue,blueLocks,mode,mode=="random");
+const ra=assignWithLocks(red,redLocks,mode,mode=="random");
+if(!ba||!ra) continue;
 
-let ba=assign(blue,mode,mode=="random");
-let ra=assign(red,mode,mode=="random");
-
-let bt=calc(blue,ba.map);
-let rt=calc(red,ra.map);
-
-let wr=win(bt-rt);
+const bt=calc(blue,ba.map);
+const rt=calc(red,ra.map);
+const wr=win(bt-rt);
 
 if(mode=="random"){
-if(wr<40||wr>60)continue;
+if(wr<40||wr>60) continue;
 }
 
-let diff=Math.abs(bt-rt);
+validCount++;
+const diff=Math.abs(bt-rt);
 
 if(!best||diff<best.diff){
-best={blue,red,ba,ra,bt,rt};
+best={blue,red,ba,ra,bt,rt,blueLocks,redLocks};
 }
 }
 
 if(!best){
-error.textContent="没有找到满足条件分组，可重新尝试";
+error.textContent="没有找到满足条件的分组，可重新尝试或减少锁定";
 return;
 }
 
-render(best.blue,best.ba.map,best.bt,"blue");
-render(best.red,best.ra.map,best.rt,"red");
-
-let b=win(best.bt-best.rt);
-blue.innerHTML+=`<div class="text-cyan-300 font-bold mt-3">胜率:${b.toFixed(1)}%</div>`;
-red.innerHTML+=`<div class="text-pink-300 font-bold mt-3">胜率:${(100-b).toFixed(1)}%</div>`;
+showResult(best);
 };
 
-function show(blueTeam,redTeam){
-let bm={},rm={};
-let ls=[...LANES];
-for(let p of blueTeam){
-let i=Math.floor(Math.random()*ls.length);
-bm[p.name]=ls.splice(i,1)[0];
-}
-ls=[...LANES];
-for(let p of redTeam){
-let i=Math.floor(Math.random()*ls.length);
-rm[p.name]=ls.splice(i,1)[0];
-}
-let bt=calc(blueTeam,bm),rt=calc(redTeam,rm);
-render(blueTeam,bm,bt,"blue");
-render(redTeam,rm,rt,"red");
-let b=win(bt-rt);
+function showResult(best){
+render(best.blue,best.ba.map,best.bt,"blue",best.blueLocks);
+render(best.red,best.ra.map,best.rt,"red",best.redLocks);
+let b=win(best.bt-best.rt);
 blue.innerHTML+=`<div class="text-cyan-300 font-bold mt-3">胜率:${b.toFixed(1)}%</div>`;
 red.innerHTML+=`<div class="text-pink-300 font-bold mt-3">胜率:${(100-b).toFixed(1)}%</div>`;
 }
@@ -262,11 +416,20 @@ x.style.display=x.innerText.toLowerCase().includes(k)?"block":"none";
 });
 };
 
-allBtn.onclick=()=>document.querySelectorAll("#playerPool input").forEach(x=>x.checked=true);
-noneBtn.onclick=()=>document.querySelectorAll("#playerPool input").forEach(x=>x.checked=false);
-reverseBtn.onclick=()=>document.querySelectorAll("#playerPool input").forEach(x=>x.checked=!x.checked);
+allBtn.onclick=()=>{document.querySelectorAll("#playerPool input").forEach(x=>x.checked=true);buildLockUI();};
+noneBtn.onclick=()=>{document.querySelectorAll("#playerPool input").forEach(x=>x.checked=false);buildLockUI();};
+reverseBtn.onclick=()=>{document.querySelectorAll("#playerPool input").forEach(x=>x.checked=!x.checked);buildLockUI();};
+
+clearLockBtn.onclick=()=>{
+document.querySelectorAll(".lockSelect").forEach(s=>{
+s.value="";
+s.closest(".lock-item").classList.remove("locked");
+});
+validateLocksUI();
+};
 
 renderPool();
+buildLockUI();
 </script>
 </body>
-  </html>
+</html>
